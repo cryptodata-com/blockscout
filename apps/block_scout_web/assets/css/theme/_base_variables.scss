@@ -50,6 +50,8 @@ $green: #20b760 !default;
 $teal: #009097 !default;
 $cyan: #90e1d8 !default;
 $dark-purple: #923dc3;
+$xiden-light: #17608D;
+$xiden-accent-light: #22AAFF;
 
 $colors: () !default;
 $colors: map-merge(
@@ -66,7 +68,9 @@ $colors: map-merge(
     "cyan": $cyan,
     "white": $white,
     "gray": $gray-600,
-    "gray-dark": $gray-800
+    "gray-dark": $gray-800,
+    "xiden-light": #17608D,
+    "xiden-accent-light": #22AAFF
   ),
   $colors
 );
