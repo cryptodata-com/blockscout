@@ -5,7 +5,7 @@ import { openErrorModal, openSuccessModal, openWarningModal } from '../../lib/mo
 Chart.defaults.font.family = 'Nunito, "Helvetica Neue", Arial, sans-serif,"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"'
 Chart.register(ArcElement, DoughnutController)
 
-export async function makeContractCall (call, store, gasLimit, callbackFunc) {
+export async function makeContractCall(call, store, gasLimit, callbackFunc) {
   const state = store.getState()
   const from = state.account
   const web3 = state.web3
@@ -82,7 +82,7 @@ export async function makeContractCall (call, store, gasLimit, callbackFunc) {
   })
 }
 
-export function setupChart ($canvas, self, total) {
+export function setupChart($canvas, self, total) {
   const primaryColor = $('.stakes-progress-graph-thing-for-getting-color').css('color')
   const backgroundColors = [
     primaryColor,
@@ -112,7 +112,7 @@ export function setupChart ($canvas, self, total) {
   })
 }
 
-export function checkForTokenDefinition (store) {
+export function checkForTokenDefinition(store) {
   if (store.getState().stakingTokenDefined) {
     return true
   }
@@ -120,7 +120,7 @@ export function checkForTokenDefinition (store) {
   return false
 }
 
-export function isStakingAllowed (state) {
+export function isStakingAllowed(state) {
   if (!state.stakingAllowed) {
     openWarningModal('Actions temporarily disallowed', 'The current staking epoch is ending, and staking actions are temporarily restricted. Please try again after the new epoch starts. If the epoch has just started, try again in a few blocks.')
     return false
@@ -128,15 +128,15 @@ export function isStakingAllowed (state) {
   return true
 }
 
-export function isSupportedNetwork (store) {
+export function isSupportedNetwork(store) {
   const state = store.getState()
   if (state.network && state.network.authorized) {
     return true
   }
-  openWarningModal('Unauthorized', 'Please, connect to the xDai Chain.<br /><a href="https://xdaichain.com" target="_blank">Instructions</a>. If you have already connected to, please update MetaMask to the latest version.')
+  openWarningModal('Unauthorized', 'Please, connect to the Xiden Chain.<br /><a href="https://xiden.com" target="_blank">Instructions</a>. If you have already connected to, please update MetaMask to the latest version.')
   return false
 }
 
-function sleep (seconds) {
+function sleep(seconds) {
   return new Promise(resolve => setTimeout(resolve, seconds * 1000))
 }
