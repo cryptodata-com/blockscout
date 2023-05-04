@@ -24,15 +24,15 @@ RUN wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb && \
     # remove key
     rm erlang_solutions.asc
 
-# Add nodejs repo
+# Install NodeJS 
 RUN curl -s https://deb.nodesource.com/setup_16.x | bash && \
     apt install nodejs -y
 
-# Install depencies
+# Install Rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
     apt -y install cargo
 
-# Install erlang
+# Install Erlang & Elixir
 RUN apt-get install esl-erlang elixir -y
 
 # Clone BlockScout and checkout the desired version
@@ -59,8 +59,6 @@ EXPOSE 4000
 RUN apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-COPY .env .
 
 # Run BlockScout
 CMD ["mix", "phx.server"]
