@@ -1,81 +1,66 @@
-FROM bitwalker/alpine-elixir-phoenix:1.14 AS builder
+# Use the official Ubuntu 22.04 image as the base image
+FROM ubuntu:20.04
 
-WORKDIR /app
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH="${PATH}:/root/.asdf/bin:/root/.asdf/shims"
 
-RUN apk --no-cache --update add alpine-sdk gmp-dev automake libtool inotify-tools autoconf python3 file qemu-x86_64
+# Update the package list and install required dependencies
+RUN apt-get update && \
+    apt-get install -y curl git wget unzip \
+    build-essential autoconf m4 libncurses5-dev libwxgtk3.0-gtk3-dev \
+    libwxgtk-webview3.0-gtk3-dev libgl1-mesa-dev libglu1-mesa-dev \
+    libpng-dev libssh-dev unixodbc-dev xsltproc fop libxml2-utils \
+    libncurses-dev openjdk-11-jdk && \
+    apt-get clean
 
-ENV GLIBC_REPO=https://github.com/sgerrand/alpine-pkg-glibc \
-    GLIBC_VERSION=2.30-r0 \
-    PORT=4000 \
-    MIX_ENV="prod" \
-    SECRET_KEY_BASE="RMgI4C1HSkxsEjdhtGMfwAHfyT6CKWXOgzCboJflfSm4jeAlic52io05KB6mqzc5"
+# Add erlang repos
+RUN wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb && \
+    wget https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc && \
+    # install repo
+    dpkg -i erlang-solutions_2.0_all.deb && \
+    apt-key add erlang_solutions.asc && \
+    rm erlang-solutions_2.0_all.deb && \
+    # remove key
+    rm erlang_solutions.asc
 
-RUN set -ex && \
-    apk --update add libstdc++ curl ca-certificates && \
-    for pkg in glibc-${GLIBC_VERSION} glibc-bin-${GLIBC_VERSION}; \
-        do curl -sSL ${GLIBC_REPO}/releases/download/${GLIBC_VERSION}/${pkg}.apk -o /tmp/${pkg}.apk; done && \
-    apk add --allow-untrusted /tmp/*.apk && \
-    rm -v /tmp/*.apk && \
-    /usr/glibc-compat/sbin/ldconfig /lib /usr/glibc-compat/lib
+# Add nodejs repo
+RUN curl -s https://deb.nodesource.com/setup_16.x | bash && \
+    apt install nodejs -y
 
-ARG CACHE_EXCHANGE_RATES_PERIOD
-ARG API_V1_READ_METHODS_DISABLED
-ARG DISABLE_WEBAPP
-ARG API_V1_WRITE_METHODS_DISABLED
-ARG CACHE_TOTAL_GAS_USAGE_COUNTER_ENABLED
-ARG ADMIN_PANEL_ENABLED
-ARG CACHE_ADDRESS_WITH_BALANCES_UPDATE_INTERVAL
-ARG SESSION_COOKIE_DOMAIN
-ARG MIXPANEL_TOKEN
-ARG MIXPANEL_URL
-ARG AMPLITUDE_API_KEY
-ARG AMPLITUDE_URL
+# Install depencies
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
+    apt -y install cargo
 
-# Cache elixir deps
-ADD mix.exs mix.lock ./
-ADD apps/block_scout_web/mix.exs ./apps/block_scout_web/
-ADD apps/explorer/mix.exs ./apps/explorer/
-ADD apps/ethereum_jsonrpc/mix.exs ./apps/ethereum_jsonrpc/
-ADD apps/indexer/mix.exs ./apps/indexer/
+# Install erlang
+RUN apt-get install esl-erlang elixir -y
 
-RUN mix do deps.get, local.rebar --force, deps.compile
+# Clone BlockScout and checkout the desired version
+RUN git clone https://github.com/blockscout/blockscout.git /blockscout
+WORKDIR /blockscout
 
-ADD . .
+# Install dependencies and build BlockScout
+RUN mix local.hex --force && \
+    mix local.rebar --force && \
+    mix do deps.get, local.rebar --force, deps.compile, compile
 
-COPY . .
-
-# Run forderground build and phoenix digest
-RUN mix compile && npm install npm@latest
-
-# Add blockscout npm deps
+# Compile the static assets
 RUN cd apps/block_scout_web/assets/ && \
     npm install && \
     npm run deploy && \
-    cd /app/apps/explorer/ && \
-    npm install && \
-    apk update && \
-    apk del --force-broken-world alpine-sdk gmp-dev automake libtool inotify-tools autoconf python3
+    cd - && \
+    mix phx.digest
 
-RUN mix phx.digest
+# Expose the default BlockScout port
+EXPOSE 4000
 
-RUN mkdir -p /opt/release \
-  && mix release blockscout \
-  && mv _build/${MIX_ENV}/rel/blockscout /opt/release
 
-##############################################################
-FROM bitwalker/alpine-elixir-phoenix:1.14
+# Clean up
+RUN apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-ARG RELEASE_VERSION
-ENV RELEASE_VERSION=${RELEASE_VERSION}
-ARG BLOCKSCOUT_VERSION
-ENV BLOCKSCOUT_VERSION=${BLOCKSCOUT_VERSION}
+COPY .env .
 
-RUN apk --no-cache --update add jq
-
-WORKDIR /app
-
-COPY --from=builder /opt/release/blockscout .
-COPY --from=builder /app/apps/explorer/node_modules ./node_modules
-COPY --from=builder /app/config/config_helper.exs ./config/config_helper.exs
-COPY --from=builder /app/config/config_helper.exs /app/releases/${RELEASE_VERSION}/config_helper.exs
-
+# Run BlockScout
+CMD ["mix", "phx.server"]
