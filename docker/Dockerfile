@@ -44,6 +44,10 @@ RUN mix local.hex --force && \
     mix local.rebar --force && \
     mix do deps.get, local.rebar --force, deps.compile, compile
 
+# Generate certificate HTTP/2
+RUN cd apps/block_scout_web && \
+    mix phx.gen.cert blockscout blockscout.local
+
 # Compile the static assets
 RUN cd apps/block_scout_web/assets/ && \
     npm install && \
