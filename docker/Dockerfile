@@ -36,7 +36,7 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
 RUN apt-get install esl-erlang elixir -y
 
 # Clone BlockScout and checkout the desired version
-RUN git clone https://github.com/blockscout/blockscout.git /blockscout
+RUN git clone --branch xiden-dev https://github.com/cryptodata-com/blockscout /blockscout
 WORKDIR /blockscout
 
 # Install dependencies and build BlockScout
